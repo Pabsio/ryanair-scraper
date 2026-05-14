@@ -294,9 +294,10 @@ async function scrapeAll() {
 // ─── GOOGLE SHEETS ───────────────────────────────────────────────────────────
 
 async function writeToSheet(rows) {
-  // Soporta JSON crudo o base64
-  let credentials;
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  console.log('SECRET length:', raw?.length);
+  console.log('SECRET start:', raw?.substring(0, 50));
+  let credentials;
   try {
     credentials = JSON.parse(raw);
   } catch {
