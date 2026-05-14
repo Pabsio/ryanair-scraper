@@ -9,28 +9,27 @@ const SHEET_ID   = '1SoO7kZuMf_LnI_4EPp4OqHyWvhVi85gLA9g6reyOcbo';
 const SHEET_NAME = 'Ryanair'; // nombre exacto de tu pestaña
 
 // Aeropuertos origen agrupados por país
+// ⚠️  PRUEBA: solo 4 aeropuertos. Restaurar lista completa cuando valides.
 const ORIGINS = [
-  // Alemania
-  'BER','MUC','FRA','CGN','HAM',
-  // Austria
-  'VIE',
-  // Suiza
-  'ZRH','GVA',
-  // Italia
-  'FCO','MXP','BGY','VCE','NAP',
-  // España
-  'MAD','BCN','AGP','PMI','SVQ',
-  // Francia
-  'CDG','ORY','NCE','MRS',
-  // Polonia
-  'WAW','KTW','WRO',
-  // Reino Unido
-  'STN','MAN','EDI','LGW',
-  // Holanda
-  'AMS',
-  // Bélgica
-  'CRL','BRU',
+  'MAD', // España
+  'BCN', // España
+  'BER', // Alemania
+  'STN', // Reino Unido
 ];
+
+// Lista completa para cuando valides:
+// const ORIGINS = [
+//   'BER','MUC','FRA','CGN','HAM',  // Alemania
+//   'VIE',                           // Austria
+//   'ZRH','GVA',                     // Suiza
+//   'FCO','MXP','BGY','VCE','NAP',  // Italia
+//   'MAD','BCN','AGP','PMI','SVQ',  // España
+//   'CDG','ORY','NCE','MRS',        // Francia
+//   'WAW','KTW','WRO',              // Polonia
+//   'STN','MAN','EDI','LGW',        // Reino Unido
+//   'AMS',                           // Holanda
+//   'CRL','BRU',                     // Bélgica
+// ];
 
 // Rango de fechas: mes actual + 2 meses
 function getDateRange() {
