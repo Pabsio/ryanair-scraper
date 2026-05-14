@@ -2,14 +2,13 @@ name: Ryanair Daily Scraper
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # 06:00 UTC (08:00 hora española)
-    - cron: '0 14 * * *'  # 14:00 UTC (16:00 hora española)
-  workflow_dispatch:        # permite lanzarlo manualmente desde GitHub
+    - cron: '0 2 * * *'   # 02:00 UTC (04:00 hora española)
+  workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 180
 
     steps:
       - name: Checkout
