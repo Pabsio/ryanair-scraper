@@ -6,10 +6,10 @@ import { google } from 'googleapis';
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 
 const SHEET_ID   = '1SoO7kZuMf_LnI_4EPp4OqHyWvhVi85gLA9g6reyOcbo';
-const SHEET_NAME = 'Ryanair'; // nombre exacto de tu pestaña
+const SHEET_NAME = 'Ryanair';
+const TOP_N      = 50; // resultados por aeropuerto+patrón
 
-// Aeropuertos origen agrupados por país
-// ⚠️  PRUEBA: solo 4 aeropuertos. Restaurar lista completa cuando valides.
+// ⚠️  PRUEBA: solo 4 aeropuertos. Descomentar lista completa cuando valides.
 const ORIGINS = [
   'MAD', // España
   'BCN', // España
@@ -31,16 +31,18 @@ const ORIGINS = [
 //   'CRL','BRU',                     // Bélgica
 // ];
 
-// Rango de fechas: mes actual + 2 meses
+// ─── FECHA RANGE ─────────────────────────────────────────────────────────────
+
 function getDateRange() {
-  const now   = new Date();
-  const from  = now.toISOString().split('T')[0];
-  const end   = new Date(now.getFullYear(), now.getMonth() + 3, 0);
-  const to    = end.toISOString().split('T')[0];
+  const now = new Date();
+  const from = now.toISOString().split('T')[0];
+  const end  = new Date(now.getFullYear(), now.getMonth() + 3, 0);
+  const to   = end.toISOString().split('T')[0];
   return { from, to };
 }
 
-// 4 patrones de búsqueda
+// ─── PATRONES ────────────────────────────────────────────────────────────────
+
 function getPatterns() {
   const { from, to } = getDateRange();
   return [
@@ -81,6 +83,40 @@ function getPatterns() {
       dateTo:    to,
     },
   ];
+}
+
+// ─── DEDUP: top N por destino (mismo patrón que merge.js) ────────────────────
+
+function deduplicateTop(fares, target = 50) {
+  // Ordenar por precio
+  const sorted = [...fares].sort((a, b) => a.precio - b.precio);
+
+  const cards    = [];
+  const seenDest = new Set();
+
+  // Pasada 1: 1 resultado por destino IATA (el más barato)
+  for (const f of sorted) {
+    if (!seenDest.has(f.destino)) {
+      seenDest.add(f.destino);
+      cards.push({ ...f, alternativo: '' });
+      if (cards.length >= target) break;
+    }
+  }
+
+  // Pasada 2: rellena con fechas alternativas si faltan cards
+  if (cards.length < target) {
+    const usedIds = new Set(cards.map(c => `${c.destino}_${c.salida}`));
+    for (const f of sorted) {
+      if (cards.length >= target) break;
+      const id = `${f.destino}_${f.salida}`;
+      if (!usedIds.has(id)) {
+        usedIds.add(id);
+        cards.push({ ...f, alternativo: '+fechas' });
+      }
+    }
+  }
+
+  return cards;
 }
 
 // ─── RYANAIR API ─────────────────────────────────────────────────────────────
@@ -191,17 +227,18 @@ function mapFare(f, origin, pattern) {
   const price   = f.summary?.price?.value ?? f.outbound?.price?.value ?? f.price?.value ?? 0;
 
   return {
-    origen:    origin,
-    destino:   iata,
-    ciudad:    f.outbound?.arrivalAirport?.name || CITY_MAP[iata] || iata,
-    pais:      COUNTRY_MAP[cc] || cc,
-    precio:    price,
-    salida:    depDate,
-    vuelta:    retDate || '',
-    noches:    nights ?? '',
-    patron:    pattern.label,
-    tipo:      pattern.type === 'oneway' ? 'Solo ida' : 'Ida y vuelta',
-    capturado: new Date().toISOString().split('T')[0],
+    origen:      origin,
+    destino:     iata,
+    ciudad:      f.outbound?.arrivalAirport?.name || CITY_MAP[iata] || iata,
+    pais:        COUNTRY_MAP[cc] || cc,
+    precio:      price,
+    salida:      depDate,
+    vuelta:      retDate || '',
+    noches:      nights ?? '',
+    patron:      pattern.label,
+    tipo:        pattern.type === 'oneway' ? 'Solo ida' : 'Ida y vuelta',
+    alternativo: '',
+    capturado:   new Date().toISOString().split('T')[0],
   };
 }
 
@@ -214,7 +251,7 @@ async function sleep(ms) {
 async function scrapeAll() {
   const patterns = getPatterns();
   const results  = [];
-  const BS       = 5; // destinos en paralelo
+  const BS       = 5;
 
   for (const origin of ORIGINS) {
     console.log(`\n→ ${origin}`);
@@ -231,7 +268,7 @@ async function scrapeAll() {
           batch.map(d => getFares(origin, d, pattern))
         );
         batchResults.forEach(fs => fares.push(...fs));
-        await sleep(1000); // pausa entre batches
+        await sleep(1000);
       }
 
       const mapped = fares
@@ -242,11 +279,13 @@ async function scrapeAll() {
           return pattern.flyDays.includes(new Date(f.salida).getDay());
         });
 
-      console.log(`    ${mapped.length} resultados`);
-      results.push(...mapped);
+      // Top 50 deduplicado por destino
+      const top = deduplicateTop(mapped, TOP_N);
+      console.log(`    ${mapped.length} resultados → ${top.length} top${TOP_N}`);
+      results.push(...top);
     }
 
-    await sleep(2000); // pausa entre aeropuertos
+    await sleep(2000);
   }
 
   return results;
@@ -255,7 +294,16 @@ async function scrapeAll() {
 // ─── GOOGLE SHEETS ───────────────────────────────────────────────────────────
 
 async function writeToSheet(rows) {
-  const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  // Soporta JSON crudo o base64
+  let credentials;
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  try {
+    credentials = JSON.parse(raw);
+  } catch {
+    // Intentar base64
+    const decoded = Buffer.from(raw, 'base64').toString('utf-8');
+    credentials = JSON.parse(decoded);
+  }
 
   const auth = new google.auth.GoogleAuth({
     credentials,
@@ -264,7 +312,7 @@ async function writeToSheet(rows) {
 
   const sheets = google.sheets({ version: 'v4', auth });
 
-  // 1. Limpiar hoja (excepto cabecera)
+  // 1. Limpiar hoja
   await sheets.spreadsheets.values.clear({
     spreadsheetId: SHEET_ID,
     range:         `${SHEET_NAME}!A2:Z`,
@@ -275,31 +323,28 @@ async function writeToSheet(rows) {
     return;
   }
 
-  // 2. Escribir cabecera si la hoja está vacía
-  const header = ['Origen','Destino','Ciudad','País','Precio (€)','Salida','Vuelta','Noches','Patrón','Tipo','Capturado'];
+  // 2. Cabecera
+  const header = ['Origen','Destino','Ciudad','País','Precio (€)','Salida','Vuelta','Noches','Patrón','Tipo','Alternativo','Capturado'];
   await sheets.spreadsheets.values.update({
-    spreadsheetId:     SHEET_ID,
-    range:             `${SHEET_NAME}!A1`,
-    valueInputOption:  'RAW',
-    requestBody: {
-      values: [header],
-    },
+    spreadsheetId:    SHEET_ID,
+    range:            `${SHEET_NAME}!A1`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [header] },
   });
 
-  // 3. Escribir datos en batches de 500
+  // 3. Datos en batches de 500
   const data = rows.map(r => [
     r.origen, r.destino, r.ciudad, r.pais, r.precio,
-    r.salida, r.vuelta, r.noches, r.patron, r.tipo, r.capturado,
+    r.salida, r.vuelta, r.noches, r.patron, r.tipo, r.alternativo, r.capturado,
   ]);
 
   const BATCH = 500;
   for (let i = 0; i < data.length; i += BATCH) {
-    const chunk = data.slice(i, i + BATCH);
     await sheets.spreadsheets.values.append({
       spreadsheetId:    SHEET_ID,
       range:            `${SHEET_NAME}!A2`,
       valueInputOption: 'RAW',
-      requestBody: { values: chunk },
+      requestBody: { values: data.slice(i, i + BATCH) },
     });
     await sleep(500);
   }
