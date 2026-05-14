@@ -9,8 +9,13 @@ const SHEET_ID   = '1SoO7kZuMf_LnI_4EPp4OqHyWvhVi85gLA9g6reyOcbo';
 const SHEET_NAME = 'Ryanair';
 const TOP_N      = 50; // resultados por aeropuerto+patrón
 
-// ⚠️  PRUEBA: solo 1 aeropuerto para testear escritura en Sheet.
-const ORIGINS = ['MAD'];
+// ⚠️  PRUEBA: solo 4 aeropuertos. Descomentar lista completa cuando valides.
+const ORIGINS = [
+  'MAD', // España
+  'BCN', // España
+  'BER', // Alemania
+  'STN', // Reino Unido
+];
 
 // Lista completa para cuando valides:
 // const ORIGINS = [
@@ -41,16 +46,43 @@ function getDateRange() {
 function getPatterns() {
   const { from, to } = getDateRange();
   return [
-  {
-    label:     'Fin de semana',
-    nightsMin: 2,
-    nightsMax: 3,
-    flyDays:   [4, 5],
-    type:      'round',
-    dateFrom:  from,
-    dateTo:    to,
-  },
-];
+    {
+      label:     'Fin de semana',
+      nightsMin: 2,
+      nightsMax: 3,
+      flyDays:   [4, 5], // jue, vie
+      type:      'round',
+      dateFrom:  from,
+      dateTo:    to,
+    },
+    {
+      label:     'Semana',
+      nightsMin: 5,
+      nightsMax: 7,
+      flyDays:   [],
+      type:      'round',
+      dateFrom:  from,
+      dateTo:    to,
+    },
+    {
+      label:     'Puente',
+      nightsMin: 2,
+      nightsMax: 4,
+      flyDays:   [],
+      type:      'round',
+      dateFrom:  from,
+      dateTo:    to,
+    },
+    {
+      label:     'Oneway',
+      nightsMin: null,
+      nightsMax: null,
+      flyDays:   [],
+      type:      'oneway',
+      dateFrom:  from,
+      dateTo:    to,
+    },
+  ];
 }
 
 // ─── DEDUP: top N por destino (mismo patrón que merge.js) ────────────────────
@@ -184,6 +216,8 @@ function guessCountry(iata) {
 
 function mapFare(f, origin, pattern) {
   const iata    = f.outbound?.arrivalAirport?.iataCode || f.arrivalAirport?.iataCode || '???';
+  // Debug país — borrar tras validar
+  if (iata === 'LHR' || iata === 'FCO') console.log('SAMPLE', iata, JSON.stringify(f.outbound?.arrivalAirport || f.arrivalAirport));
   const depDate = f.outbound?.departureDate || f.departureDate;
   const retDate = f.inbound?.departureDate  || null;
   const price   = f.summary?.price?.value ?? f.outbound?.price?.value ?? f.price?.value ?? 0;
@@ -269,10 +303,9 @@ async function scrapeAll() {
 // ─── GOOGLE SHEETS ───────────────────────────────────────────────────────────
 
 async function writeToSheet(rows) {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  console.log('SECRET length:', raw?.length);
-  console.log('SECRET start:', raw?.substring(0, 50));
+  // Soporta JSON crudo o base64
   let credentials;
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   try {
     credentials = JSON.parse(raw);
   } catch {
