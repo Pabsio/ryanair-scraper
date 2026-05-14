@@ -1,0 +1,11 @@
+{
+  "name": "ryanair-scraper",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "scrape": "node scrape.js"
+  },
+  "dependencies": {
+    "googleapis": "^144.0.0"
+  }
+}
