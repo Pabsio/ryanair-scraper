@@ -184,21 +184,28 @@ function guessCountry(iata) {
 
 function mapFare(f, origin, pattern) {
   const iata    = f.outbound?.arrivalAirport?.iataCode || f.arrivalAirport?.iataCode || '???';
-  const cc      = guessCountry(iata);
   const depDate = f.outbound?.departureDate || f.departureDate;
   const retDate = f.inbound?.departureDate  || null;
-  const depA    = new Date(depDate);
-  const retA    = retDate ? new Date(retDate) : null;
-  const nights  = (retA && !isNaN(depA) && !isNaN(retA))
-    ? Math.round((retA - depA) / 86400000)
-    : null;
   const price   = f.summary?.price?.value ?? f.outbound?.price?.value ?? f.price?.value ?? 0;
+
+  // Noches: comparar solo fechas, sin horas
+  const nights = (retDate && depDate)
+    ? Math.round(
+        (new Date(retDate.split('T')[0]) - new Date(depDate.split('T')[0])) / 86400000
+      )
+    : null;
+
+  // País: extraer directamente de la API, fallback al mapa manual
+  const ccApi = f.outbound?.arrivalAirport?.countryCode
+             || f.arrivalAirport?.countryCode
+             || guessCountry(iata);
+  const pais  = COUNTRY_MAP[ccApi] || ccApi || '??';
 
   return {
     origen:      origin,
     destino:     iata,
     ciudad:      f.outbound?.arrivalAirport?.name || CITY_MAP[iata] || iata,
-    pais:        COUNTRY_MAP[cc] || cc,
+    pais,
     precio:      price,
     salida:      depDate,
     vuelta:      retDate || '',
