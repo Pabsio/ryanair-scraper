@@ -9,27 +9,28 @@ const SHEET_ID   = '1SoO7kZuMf_LnI_4EPp4OqHyWvhVi85gLA9g6reyOcbo';
 const SHEET_NAME = 'Ryanair';
 const TOP_N      = 50; // resultados por aeropuerto+patrón
 
-// ⚠️  PRUEBA: solo 4 aeropuertos. Descomentar lista completa cuando valides.
 const ORIGINS = [
-  'MAD', // España
-  'BCN', // España
-  'BER', // Alemania
-  'STN', // Reino Unido
+  // Alemania (10)
+  'BER','MUC','FRA','CGN','HAM','NUE','STR','HAJ','FMM','NRN',
+  // Austria (5)
+  'VIE','GRZ','LNZ','SZG','INN',
+  // Suiza (3)
+  'ZRH','GVA','BSL',
+  // Italia (10)
+  'BGY','FCO','MXP','NAP','VCE','BLQ','PSA','CTA','BRI','PMO',
+  // España (10)
+  'MAD','BCN','AGP','PMI','ALC','SVQ','VLC','TFS','LPA','IBZ',
+  // Francia (10)
+  'CDG','MRS','NCE','LYS','NTE','BOD','TLS','BVA','LIL','BIQ',
+  // Polonia (8)
+  'WAW','KTW','WRO','GDN','KRK','POZ','RZE','LCJ',
+  // Reino Unido (10)
+  'STN','MAN','LGW','EDI','BRS','LTN','GLA','BHX','LPL','LBA',
+  // Holanda (3)
+  'AMS','EIN','MST',
+  // Bélgica (2)
+  'CRL','BRU',
 ];
-
-// Lista completa para cuando valides:
-// const ORIGINS = [
-//   'BER','MUC','FRA','CGN','HAM',  // Alemania
-//   'VIE',                           // Austria
-//   'ZRH','GVA',                     // Suiza
-//   'FCO','MXP','BGY','VCE','NAP',  // Italia
-//   'MAD','BCN','AGP','PMI','SVQ',  // España
-//   'CDG','ORY','NCE','MRS',        // Francia
-//   'WAW','KTW','WRO',              // Polonia
-//   'STN','MAN','EDI','LGW',        // Reino Unido
-//   'AMS',                           // Holanda
-//   'CRL','BRU',                     // Bélgica
-// ];
 
 // ─── FECHA RANGE ─────────────────────────────────────────────────────────────
 
@@ -47,7 +48,7 @@ function getPatterns() {
   const { from, to } = getDateRange();
   return [
     {
-      label:     'Fin de semana',
+      label:     'Weekend',
       nightsMin: 2,
       nightsMax: 3,
       flyDays:   [4, 5], // jue, vie
@@ -56,7 +57,7 @@ function getPatterns() {
       dateTo:    to,
     },
     {
-      label:     'Semana',
+      label:     'Week',
       nightsMin: 5,
       nightsMax: 7,
       flyDays:   [],
@@ -65,7 +66,7 @@ function getPatterns() {
       dateTo:    to,
     },
     {
-      label:     'Puente',
+      label:     'Long Weekend',
       nightsMin: 2,
       nightsMax: 4,
       flyDays:   [],
@@ -74,7 +75,7 @@ function getPatterns() {
       dateTo:    to,
     },
     {
-      label:     'Oneway',
+      label:     'One Way',
       nightsMin: null,
       nightsMax: null,
       flyDays:   [],
@@ -124,7 +125,7 @@ function deduplicateTop(fares, target = 50) {
 const BASE = 'https://www.ryanair.com';
 
 const HEADERS = {
-  'User-Agent':      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'User-Agent':      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
   'Accept':          'application/json, text/plain, */*',
   'Accept-Language': 'es-ES,es;q=0.9',
   'Referer':         'https://www.ryanair.com/es/es/',
@@ -216,8 +217,6 @@ function guessCountry(iata) {
 
 function mapFare(f, origin, pattern) {
   const iata    = f.outbound?.arrivalAirport?.iataCode || f.arrivalAirport?.iataCode || '???';
-  // Debug país — borrar tras validar
-  if (iata === 'LHR' || iata === 'FCO') console.log('SAMPLE', iata, JSON.stringify(f.outbound?.arrivalAirport || f.arrivalAirport));
   const depDate = f.outbound?.departureDate || f.departureDate;
   const retDate = f.inbound?.departureDate  || null;
   const price   = f.summary?.price?.value ?? f.outbound?.price?.value ?? f.price?.value ?? 0;
@@ -229,11 +228,9 @@ function mapFare(f, origin, pattern) {
       )
     : null;
 
-  // País: extraer directamente de la API, fallback al mapa manual
-  const ccApi = f.outbound?.arrivalAirport?.countryCode
-             || f.arrivalAirport?.countryCode
-             || guessCountry(iata);
-  const pais  = COUNTRY_MAP[ccApi] || ccApi || '??';
+  // País: la API devuelve countryName directamente en español
+  const airport = f.outbound?.arrivalAirport || f.arrivalAirport;
+  const pais    = airport?.countryName || COUNTRY_MAP[guessCountry(iata)] || '??';
 
   return {
     origen:      origin,
@@ -245,7 +242,7 @@ function mapFare(f, origin, pattern) {
     vuelta:      retDate || '',
     noches:      nights ?? '',
     patron:      pattern.label,
-    tipo:        pattern.type === 'oneway' ? 'Solo ida' : 'Ida y vuelta',
+    tipo:        pattern.type === 'oneway' ? 'One Way' : 'Round Trip',
     alternativo: '',
     capturado:   new Date().toISOString().split('T')[0],
   };
@@ -277,7 +274,7 @@ async function scrapeAll() {
           batch.map(d => getFares(origin, d, pattern))
         );
         batchResults.forEach(fs => fares.push(...fs));
-        await sleep(1000);
+        await sleep(3000);
       }
 
       const mapped = fares
@@ -294,7 +291,7 @@ async function scrapeAll() {
       results.push(...top);
     }
 
-    await sleep(2000);
+    await sleep(10000); // pausa entre aeropuertos (~10 seg)
   }
 
   return results;
@@ -333,7 +330,7 @@ async function writeToSheet(rows) {
   }
 
   // 2. Cabecera
-  const header = ['Origen','Destino','Ciudad','País','Precio (€)','Salida','Vuelta','Noches','Patrón','Tipo','Alternativo','Capturado'];
+  const header = ['Origin','Destination','City','Country','Price (€)','Departure','Return','Nights','Pattern','Type','Alternative','Captured'];
   await sheets.spreadsheets.values.update({
     spreadsheetId:    SHEET_ID,
     range:            `${SHEET_NAME}!A1`,
