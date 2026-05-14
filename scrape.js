@@ -9,13 +9,8 @@ const SHEET_ID   = '1SoO7kZuMf_LnI_4EPp4OqHyWvhVi85gLA9g6reyOcbo';
 const SHEET_NAME = 'Ryanair';
 const TOP_N      = 50; // resultados por aeropuerto+patrón
 
-// ⚠️  PRUEBA: solo 4 aeropuertos. Descomentar lista completa cuando valides.
-const ORIGINS = [
-  'MAD', // España
-  'BCN', // España
-  'BER', // Alemania
-  'STN', // Reino Unido
-];
+// ⚠️  PRUEBA: solo 1 aeropuerto para testear escritura en Sheet.
+const ORIGINS = ['MAD'];
 
 // Lista completa para cuando valides:
 // const ORIGINS = [
@@ -46,43 +41,16 @@ function getDateRange() {
 function getPatterns() {
   const { from, to } = getDateRange();
   return [
-    {
-      label:     'Fin de semana',
-      nightsMin: 2,
-      nightsMax: 3,
-      flyDays:   [4, 5], // jue, vie
-      type:      'round',
-      dateFrom:  from,
-      dateTo:    to,
-    },
-    {
-      label:     'Semana',
-      nightsMin: 5,
-      nightsMax: 7,
-      flyDays:   [],
-      type:      'round',
-      dateFrom:  from,
-      dateTo:    to,
-    },
-    {
-      label:     'Puente',
-      nightsMin: 2,
-      nightsMax: 4,
-      flyDays:   [],
-      type:      'round',
-      dateFrom:  from,
-      dateTo:    to,
-    },
-    {
-      label:     'Oneway',
-      nightsMin: null,
-      nightsMax: null,
-      flyDays:   [],
-      type:      'oneway',
-      dateFrom:  from,
-      dateTo:    to,
-    },
-  ];
+  {
+    label:     'Fin de semana',
+    nightsMin: 2,
+    nightsMax: 3,
+    flyDays:   [4, 5],
+    type:      'round',
+    dateFrom:  from,
+    dateTo:    to,
+  },
+];
 }
 
 // ─── DEDUP: top N por destino (mismo patrón que merge.js) ────────────────────
