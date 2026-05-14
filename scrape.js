@@ -254,15 +254,67 @@ async function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+// ─── GOOGLE SHEETS ───────────────────────────────────────────────────────────
+
+async function initSheet() {
+  let credentials;
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  try {
+    credentials = JSON.parse(raw);
+  } catch {
+    const decoded = Buffer.from(raw, 'base64').toString('utf-8');
+    credentials = JSON.parse(decoded);
+  }
+  const auth = new google.auth.GoogleAuth({
+    credentials,
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  });
+  return google.sheets({ version: 'v4', auth });
+}
+
+async function appendRows(sheets, rows) {
+  if (rows.length === 0) return;
+  const data = rows.map(r => [
+    r.origen, r.destino, r.ciudad, r.pais, r.precio,
+    r.salida, r.vuelta, r.noches, r.patron, r.tipo, r.alternativo, r.capturado,
+  ]);
+  await sheets.spreadsheets.values.append({
+    spreadsheetId:    SHEET_ID,
+    range:            `${SHEET_NAME}!A2`,
+    valueInputOption: 'RAW',
+    requestBody:      { values: data },
+  });
+}
+
 async function scrapeAll() {
   const patterns = getPatterns();
-  const results  = [];
   const BS       = 5;
+  let totalRows  = 0;
+
+  // Inicializar Sheets y limpiar hoja una sola vez al inicio
+  const sheets = await initSheet();
+
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId: SHEET_ID,
+    range:         `${SHEET_NAME}!A2:Z`,
+  });
+
+  const header = ['Origin','Destination','City','Country','Price (€)','Departure','Return','Nights','Pattern','Type','Alternative','Captured'];
+  await sheets.spreadsheets.values.update({
+    spreadsheetId:    SHEET_ID,
+    range:            `${SHEET_NAME}!A1`,
+    valueInputOption: 'RAW',
+    requestBody:      { values: [header] },
+  });
+
+  console.log('Sheet limpiado y cabecera escrita.\n');
 
   for (const origin of ORIGINS) {
     console.log(`\n→ ${origin}`);
     const dests = await getDestinations(origin);
     console.log(`  ${dests.length} destinos`);
+
+    const originRows = [];
 
     for (const pattern of patterns) {
       console.log(`  [${pattern.label}]`);
@@ -285,77 +337,20 @@ async function scrapeAll() {
           return pattern.flyDays.includes(new Date(f.salida).getDay());
         });
 
-      // Top 50 deduplicado por destino
       const top = deduplicateTop(mapped, TOP_N);
       console.log(`    ${mapped.length} resultados → ${top.length} top${TOP_N}`);
-      results.push(...top);
+      originRows.push(...top);
     }
 
-    await sleep(10000); // pausa entre aeropuertos (~10 seg)
+    // Escribir filas de este aeropuerto al Sheet antes de continuar
+    await appendRows(sheets, originRows);
+    totalRows += originRows.length;
+    console.log(`  ✓ ${originRows.length} filas escritas (total: ${totalRows})`);
+
+    await sleep(10000); // pausa entre aeropuertos
   }
 
-  return results;
-}
-
-// ─── GOOGLE SHEETS ───────────────────────────────────────────────────────────
-
-async function writeToSheet(rows) {
-  // Soporta JSON crudo o base64
-  let credentials;
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  try {
-    credentials = JSON.parse(raw);
-  } catch {
-    // Intentar base64
-    const decoded = Buffer.from(raw, 'base64').toString('utf-8');
-    credentials = JSON.parse(decoded);
-  }
-
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-  });
-
-  const sheets = google.sheets({ version: 'v4', auth });
-
-  // 1. Limpiar hoja
-  await sheets.spreadsheets.values.clear({
-    spreadsheetId: SHEET_ID,
-    range:         `${SHEET_NAME}!A2:Z`,
-  });
-
-  if (rows.length === 0) {
-    console.log('Sin resultados, hoja limpiada.');
-    return;
-  }
-
-  // 2. Cabecera
-  const header = ['Origin','Destination','City','Country','Price (€)','Departure','Return','Nights','Pattern','Type','Alternative','Captured'];
-  await sheets.spreadsheets.values.update({
-    spreadsheetId:    SHEET_ID,
-    range:            `${SHEET_NAME}!A1`,
-    valueInputOption: 'RAW',
-    requestBody: { values: [header] },
-  });
-
-  // 3. Datos en batches de 500
-  const data = rows.map(r => [
-    r.origen, r.destino, r.ciudad, r.pais, r.precio,
-    r.salida, r.vuelta, r.noches, r.patron, r.tipo, r.alternativo, r.capturado,
-  ]);
-
-  const BATCH = 500;
-  for (let i = 0; i < data.length; i += BATCH) {
-    await sheets.spreadsheets.values.append({
-      spreadsheetId:    SHEET_ID,
-      range:            `${SHEET_NAME}!A2`,
-      valueInputOption: 'RAW',
-      requestBody: { values: data.slice(i, i + BATCH) },
-    });
-    await sleep(500);
-  }
-
-  console.log(`\n✓ ${rows.length} filas escritas en "${SHEET_NAME}"`);
+  console.log(`\n=== Completado: ${totalRows} filas totales ===`);
 }
 
 // ─── ENTRY POINT ─────────────────────────────────────────────────────────────
@@ -365,9 +360,7 @@ async function writeToSheet(rows) {
   console.log(new Date().toISOString());
 
   try {
-    const results = await scrapeAll();
-    console.log(`\nTotal resultados: ${results.length}`);
-    await writeToSheet(results);
+    await scrapeAll();
   } catch (err) {
     console.error('Error:', err);
     process.exit(1);
