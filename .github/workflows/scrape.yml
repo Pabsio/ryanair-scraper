@@ -2,7 +2,7 @@ name: Ryanair Daily Scraper
 
 on:
   schedule:
-    - cron: '0 2 * * *'   # 02:00 UTC (04:00 hora española)
+    - cron: '0 2 * * 1-5'   # 02:00 UTC (04:00 hora española)
   workflow_dispatch:
 
 jobs:
