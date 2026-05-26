@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Flight Deals · HolidayPirates</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --purple: #6A3460;
+      --purple-soft: #f0e8ef;
+      --purple-mid: #a685a0;
+      --border: #e4dce4;
+      --bg: #faf9f8;
+      --surface: #ffffff;
+      --text: #333333;
+      --muted: #a685a0;
+      --green: #3a6010;
+      --green-bg: #eef7e4;
+      --yellow: #7a5500;
+      --yellow-bg: #fef9e8;
+      --red: #9a2020;
+      --red-bg: #fef0f0;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Open Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+    /* ── Header ── */
+    .header{background:var(--surface);border-bottom:1px solid var(--border);padding:.85rem 2rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:9px}
+    .brand-name{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em}
+    .brand-name span{color:var(--purple)}
+    .header-right{display:flex;align-items:center;gap:10px}
+    .badge{background:var(--purple-soft);color:var(--purple);font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;letter-spacing:.01em}
+    .last-upd{font-size:12px;color:var(--muted)}
+    .refresh-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;background:var(--purple);color:#fff;border:none;border-radius:20px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s}
+    .refresh-btn:hover{opacity:.85}
+
+    /* ── Page ── */
+    .page{padding:1.2rem 2rem 3rem;max-width:1440px;margin:0 auto}
+
+    /* ── Filters ── */
+    .sec{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.2rem 1.6rem;margin-bottom:.9rem;box-shadow:0 1px 4px rgba(106,52,96,.07)}
+    .filters-grid{display:flex;flex-wrap:wrap;gap:1.2rem;align-items:flex-end}
+    .fg{display:flex;flex-direction:column;gap:5px;min-width:110px}
+    .fg label{font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.08em}
+    .fg select{font-family:inherit;font-size:13px;font-weight:600;padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--text);cursor:pointer;min-width:120px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23a685a0'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+    .fg select:focus{outline:none;border-color:var(--purple)}
+
+    /* range */
+    .rng{display:flex;flex-direction:column;gap:4px;min-width:150px}
+    .rng label{font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.08em}
+    .rng-lbl{font-size:15px;font-weight:700;color:var(--purple);min-height:22px}
+    .rng-track{position:relative;height:5px;background:var(--border);border-radius:99px;margin:8px 4px 0}
+    .rng-fill{position:absolute;height:5px;background:var(--purple);border-radius:99px;left:0}
+    input[type=range].hp{width:100%;appearance:none;background:transparent;display:block;margin-top:2px}
+    input[type=range].hp::-webkit-slider-thumb{appearance:none;width:20px;height:20px;border-radius:50%;background:var(--purple);border:2px solid #fff;box-shadow:0 0 0 2px var(--purple);cursor:pointer}
+
+    .filter-actions{display:flex;gap:8px;align-items:flex-end;margin-left:auto}
+    .clear-btn{font-family:inherit;font-size:13px;font-weight:700;padding:7px 16px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+    .clear-btn:hover{border-color:var(--purple);color:var(--purple)}
+    .clear-btn.hidden{visibility:hidden;pointer-events:none}
+
+    /* ── Stats ── */
+    .res-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:10px}
+    .res-left{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .stat-pill{display:flex;flex-direction:column}
+    .stat-lbl{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+    .stat-val{font-size:18px;font-weight:700;color:var(--purple);line-height:1.15}
+    .stat-sep{width:1px;height:32px;background:var(--border)}
+    .chips-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+    .chip{display:inline-flex;align-items:center;gap:4px;background:var(--purple-soft);border-radius:20px;font-size:12px;font-weight:700;padding:3px 10px;color:var(--purple)}
+
+    /* ── Spinner ── */
+    .spin{display:flex;align-items:center;gap:10px;padding:3.5rem;font-size:15px;color:var(--muted);justify-content:center}
+    .spin-icon{width:22px;height:22px;border:2.5px solid #d4b8d0;border-top-color:var(--purple);border-radius:50%;animation:rot .7s linear infinite;flex-shrink:0}
+    @keyframes rot{to{transform:rotate(360deg)}}
+
+    /* ── Table ── */
+    .tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(106,52,96,.07)}
+    table{width:100%;border-collapse:collapse}
+    thead th{font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.08em;padding:12px 14px;text-align:left;border-bottom:1.5px solid var(--border);background:#faf5fa;white-space:nowrap;cursor:pointer;user-select:none}
+    thead th:hover{color:#55285a}
+    thead th.on{color:var(--purple)}
+    thead th.r{text-align:right}
+    thead th .si{margin-left:3px;opacity:.3;font-style:normal}
+    thead th.on .si{opacity:1}
+    tbody tr{border-bottom:1px solid #ede5ed;transition:background .1s}
+    tbody tr:last-child{border-bottom:none}
+    tbody tr:hover{background:#faf5fa}
+    td{padding:12px 14px;font-size:14px;color:var(--text);vertical-align:middle}
+    td.r{text-align:right}
+    .empty{text-align:center;padding:3rem;color:#bbb;font-size:15px}
+
+    /* ── Cell styles ── */
+    .route{display:flex;align-items:center;gap:5px;font-size:15px;font-weight:700;white-space:nowrap}
+    .rarr{color:var(--purple-mid);font-size:13px}
+    .iata{font-size:14px;font-weight:700}
+    .city-name{font-size:12px;color:var(--muted);margin-top:1px}
+    .alt-badge{font-size:10px;font-weight:700;background:var(--yellow-bg);color:var(--yellow);padding:2px 7px;border-radius:20px;margin-left:4px}
+
+    .price-cell{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+    .pnum{font-size:18px;font-weight:700;color:var(--purple);line-height:1}
+    .pbadge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-block}
+    .pb-low{background:var(--green-bg);color:var(--green)}
+    .pb-mid{background:var(--yellow-bg);color:var(--yellow)}
+    .pb-hgh{background:var(--red-bg);color:var(--red)}
+
+    .dep-date{font-size:14px;font-weight:600;white-space:nowrap}
+    .ret-date{font-size:12px;color:var(--muted)}
+    .nights-badge{display:inline-block;background:#f5f0f5;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;color:var(--muted)}
+    .pattern-pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--purple-soft);color:var(--purple);white-space:nowrap}
+    .country-flag{font-size:15px;margin-right:2px}
+
+    .lnk a{font-size:12px;color:var(--purple);text-decoration:none;font-weight:700;padding:5px 12px;border:1.5px solid var(--border);border-radius:20px;transition:all .12s;display:inline-block;white-space:nowrap}
+    .lnk a:hover{background:var(--purple);color:#fff;border-color:var(--purple)}
+
+    @media(max-width:700px){.page,.header{padding-left:1rem;padding-right:1rem}.filters-grid{flex-direction:column}}
+    .day-pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:#f5f0f5;color:var(--purple);white-space:nowrap}
+    .day-pill.fri,.day-pill.sat,.day-pill.sun{background:var(--purple-soft);color:var(--purple)}
+    .day-pill.mon,.day-pill.tue,.day-pill.wed,.day-pill.thu{background:#f5f0f5;color:var(--muted)}
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <img src="data:image/png;base64,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" alt="" class="header-parrot" style="height:32px;width:auto" aria-hidden="true">
+    <span class="brand-name">Flight <span>Deals</span></span>
+  </div>
+  <div class="header-right">
+    <span class="badge">HolidayPirates</span>
+    <span class="last-upd" id="last-upd"></span>
+    <button class="refresh-btn" onclick="loadData()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </div>
+</div>
+
+<div class="page">
+
+  <div class="sec">
+    <div class="filters-grid">
+      <div class="fg">
+        <label>Origin country</label>
+        <select id="foc"><option value="">All countries</option>
+          <option>Germany</option><option>Austria</option><option>Switzerland</option>
+          <option>Italy</option><option>Spain</option><option>France</option>
+          <option>Poland</option><option>United Kingdom</option>
+          <option>Netherlands</option><option>Belgium</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Origin</label>
+        <select id="fo"><option value="">All origins</option></select>
+      </div>
+      <div class="fg">
+        <label>Destination</label>
+        <select id="fd"><option value="">All destinations</option></select>
+      </div>
+      <div class="fg">
+        <label>Country</label>
+        <select id="fc"><option value="">All countries</option></select>
+      </div>
+      <div class="fg">
+        <label>Pattern</label>
+        <select id="fp-s"><option value="">All patterns</option></select>
+      </div>
+      <div class="fg">
+        <label>Month</label>
+        <select id="fm"><option value="">All months</option></select>
+      </div>
+      <div class="fg">
+        <label>Departure day</label>
+        <select id="fday">
+          <option value="">All days</option>
+          <option value="Mon">Monday</option>
+          <option value="Tue">Tuesday</option>
+          <option value="Wed">Wednesday</option>
+          <option value="Thu">Thursday</option>
+          <option value="Fri">Friday</option>
+          <option value="Sat">Saturday</option>
+          <option value="Sun">Sunday</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Type</label>
+        <select id="ft"><option value="">All types</option><option value="Round Trip">Round Trip</option><option value="One Way">One Way</option></select>
+      </div>
+      <div class="rng">
+        <label>Max price</label>
+        <div class="rng-lbl" id="price-lbl">No limit</div>
+        <div class="rng-track"><div class="rng-fill" id="price-fill" style="width:100%"></div></div>
+        <input type="range" class="hp" id="fp" min="0" max="1000" value="1000">
+      </div>
+      <div class="filter-actions">
+        <button class="clear-btn hidden" id="clear-btn" onclick="clearFilters()">Clear filters</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="res-bar">
+    <div class="res-left">
+      <div class="stat-pill"><span class="stat-lbl">Results</span><span class="stat-val" id="st">—</span></div>
+      <div class="stat-sep"></div>
+      <div class="stat-pill"><span class="stat-lbl">Cheapest</span><span class="stat-val" id="sn">—</span></div>
+      <div class="stat-sep"></div>
+      <div class="stat-pill"><span class="stat-lbl">Most expensive</span><span class="stat-val" id="sx">—</span></div>
+    </div>
+    <div class="chips-row" id="chips"></div>
+  </div>
+
+  <div class="spin" id="spin"><div class="spin-icon"></div>&nbsp;Loading deals…</div>
+
+  <div id="ui" style="display:none">
+
+    <div id="snip-bar" style="display:none;background:#6A3460;color:#fff;border-radius:10px 10px 0 0;padding:10px 16px;align-items:center;justify-content:space-between;gap:12px;margin-bottom:-1px">
+      <span style="font-size:13px;font-weight:600" id="snip-count">0 flights selected</span>
+      <div style="display:flex;gap:8px">
+        <button onclick="copySnippets('with')" style="font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.4);background:transparent;color:#fff;cursor:pointer">Copy snippets (with dest)</button>
+        <button onclick="copySnippets('without')" style="font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.4);background:transparent;color:#fff;cursor:pointer">Copy snippets (no dest)</button>
+        <button onclick="clearSelection()" style="font-size:12px;padding:5px 10px;border-radius:20px;border:none;background:rgba(255,255,255,.15);color:#fff;cursor:pointer">✕ Clear</button>
+      </div>
+    </div>
+
+    <button id="more-btn" onclick="showAll()" style="display:none;width:100%;padding:10px;margin-bottom:8px;font-family:inherit;font-size:13px;font-weight:700;background:#fff;border:1.5px solid var(--border);border-radius:10px;color:var(--purple);cursor:pointer">Show all results</button>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:36px"><input type="checkbox" id="chk-all" title="Select all" onchange="toggleAll(this)"></th>
+            <th onclick="setSort('route')">Route<i class="si" id="si-route">↕</i></th>
+            <th>City</th>
+            <th>Country</th>
+            <th onclick="setSort('date')">Departure<i class="si" id="si-date">↕</i></th>
+            <th>Day</th>
+            <th>Nights</th>
+            <th>Pattern</th>
+            <th class="r" onclick="setSort('price')">Price<i class="si" id="si-price">↕</i></th>
+            <th class="r">Book</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="empty" style="display:none">No deals match your filters</div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+var MARKETS = {
+  DE: { c: '462458', pp: '1419401', path: 'https://www.skyscanner.de/transport/fluge/', subId1: 'DE', subId2: 'Flighthomepage' },
+  AT: { c: '462458', pp: '1769283', path: 'https://www.skyscanner.de/transport/fluge/', subId1: 'AT', subId2: 'Flighthomepage' },
+  CH: { c: '462458', pp: '273488',  path: 'https://www.skyscanner.de/transport/fluge/', subId1: 'CH', subId2: 'Flighthomepage' },
+  ES: { c: '462462', pp: '',        path: 'https://www.skyscanner.es/transporte/vuelos/', subId1: 'ES', subId2: 'Flighthomepage', subId3: 'Vuelos' },
+  FR: { c: '462458', pp: '',        path: 'https://www.skyscanner.fr/transport/vols/', subId1: 'FR', subId2: 'Flighthomepage' },
+  IT: { c: '462458', pp: '1769302', path: 'https://www.skyscanner.it/trasporti/voli/', subId1: 'IT', subId2: 'Flighthomepage' },
+  NL: { c: '462458', pp: '1419403', path: 'https://www.skyscanner.nl/transport/flights/', subId1: 'NL', subId2: 'Flighthomepage' },
+  PL: { c: '462458', pp: '1769297', path: 'https://www.skyscanner.pl/transport/flights/', subId1: 'PL', subId2: 'Flighthomepage' },
+  UK: { c: '182734', pp: '246537',  path: 'https://www.skyscanner.net/transport/flights/', subId1: 'UK', subId2: 'Flighthomepage' },
+};
+
+var AIRPORT_MARKET = {
+  'BER':'DE','MUC':'DE','FRA':'DE','CGN':'DE','HAM':'DE','NUE':'DE','STR':'DE','HAJ':'DE','FMM':'DE','NRN':'DE',
+  'VIE':'AT','GRZ':'AT','LNZ':'AT','SZG':'AT','INN':'AT',
+  'ZRH':'CH','GVA':'CH','BSL':'CH',
+  'BGY':'IT','FCO':'IT','MXP':'IT','NAP':'IT','VCE':'IT','BLQ':'IT','PSA':'IT','CTA':'IT','BRI':'IT','PMO':'IT',
+  'MAD':'ES','BCN':'ES','AGP':'ES','PMI':'ES','ALC':'ES','SVQ':'ES','VLC':'ES','TFS':'ES','LPA':'ES','IBZ':'ES',
+  'CDG':'FR','MRS':'FR','NCE':'FR','LYS':'FR','NTE':'FR','BOD':'FR','TLS':'FR','BVA':'FR','LIL':'FR','BIQ':'FR',
+  'WAW':'PL','KTW':'PL','WRO':'PL','GDN':'PL','KRK':'PL','POZ':'PL','RZE':'PL','LCJ':'PL',
+  'STN':'UK','MAN':'UK','LGW':'UK','EDI':'UK','BRS':'UK','LTN':'UK','GLA':'UK','BHX':'UK','LPL':'UK','LBA':'UK',
+  'AMS':'NL','EIN':'NL','MST':'NL',
+  'CRL':'BE','BRU':'BE',
+};
+
+var ORIGIN_COUNTRY = {
+  'BER':'Germany','MUC':'Germany','FRA':'Germany','CGN':'Germany','HAM':'Germany',
+  'NUE':'Germany','STR':'Germany','HAJ':'Germany','FMM':'Germany','NRN':'Germany',
+  'VIE':'Austria','GRZ':'Austria','LNZ':'Austria','SZG':'Austria','INN':'Austria',
+  'ZRH':'Switzerland','GVA':'Switzerland','BSL':'Switzerland',
+  'BGY':'Italy','FCO':'Italy','MXP':'Italy','NAP':'Italy','VCE':'Italy',
+  'BLQ':'Italy','PSA':'Italy','CTA':'Italy','BRI':'Italy','PMO':'Italy',
+  'MAD':'Spain','BCN':'Spain','AGP':'Spain','PMI':'Spain','ALC':'Spain',
+  'SVQ':'Spain','VLC':'Spain','TFS':'Spain','LPA':'Spain','IBZ':'Spain',
+  'CDG':'France','MRS':'France','NCE':'France','LYS':'France','NTE':'France',
+  'BOD':'France','TLS':'France','BVA':'France','LIL':'France','BIQ':'France',
+  'WAW':'Poland','KTW':'Poland','WRO':'Poland','GDN':'Poland',
+  'KRK':'Poland','POZ':'Poland','RZE':'Poland','LCJ':'Poland',
+  'STN':'United Kingdom','MAN':'United Kingdom','LGW':'United Kingdom','EDI':'United Kingdom',
+  'BRS':'United Kingdom','LTN':'United Kingdom','GLA':'United Kingdom','BHX':'United Kingdom',
+  'LPL':'United Kingdom','LBA':'United Kingdom',
+  'AMS':'Netherlands','EIN':'Netherlands','MST':'Netherlands',
+  'CRL':'Belgium','BRU':'Belgium',
+};
+
+var SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8OMtbL9cSw1avh7m_j9eafiM11AkXkz4jVNnTUBpb2Pwi-tgcflBmvX0Ae8yvaC12uZKcf9qzJl7Q/pub?gid=1835010364&single=true&output=csv';
+var MO = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var all = [], gmax = 1000, sortKey = 'price', sortDir = 1;
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmtD(d){if(!d)return'—';var p=(d||'').split('T')[0].split('-');if(p.length<3)return d;return p[2]+' '+MO[parseInt(p[1])-1]+' '+p[0];}
+function fmtM(d){if(!d)return'';var p=(d||'').split('T')[0].split('-');return p[0]+'-'+p[1];}
+function fmtDay(d){if(!d)return'';var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];var dt=new Date((d||'').split('T')[0]);return days[dt.getUTCDay()];}
+function fmtDayFull(d){if(!d)return'';var days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];var dt=new Date((d||'').split('T')[0]);return days[dt.getUTCDay()];}
+
+function buildAffLink(origin, dest, depDate, retDate, type) {
+  var mktKey = AIRPORT_MARKET[origin] || 'DE';
+  var cfg = MARKETS[mktKey];
+  if (!cfg) return '';
+  var dep = (depDate||'').split('T')[0].replace(/-/g,'');
+  var ret = retDate ? (retDate||'').split('T')[0].replace(/-/g,'') : '';
+  var innerUrl;
+  if (type === 'One Way' || !ret) {
+    innerUrl = cfg.path + origin + '/' + dest + '/' + dep + '/?adultsv2=1&sortby=cheapest&directflights=true&stops=!oneStop,!twoPlusStops#results';
+  } else {
+    innerUrl = cfg.path + origin + '/' + dest + '/' + dep + '/' + ret + '/?adultsv2=1&sortby=cheapest&directflights=true&stops=!oneStop,!twoPlusStops#results';
+  }
+  var params = 'subId1=' + cfg.subId1 + '&subId2=' + cfg.subId2;
+  if (cfg.subId3) params += '&subId3=' + cfg.subId3;
+  params += '&associateid=AFF_TRA_19354_00001';
+  if (cfg.pp) params += '&partnerpropertyid=' + cfg.pp;
+  params += '&u=' + encodeURIComponent(innerUrl);
+  return 'https://skyscanner.pxf.io/c/' + cfg.c + '/1027991/13416?' + params;
+}
+
+function skyscannerUrl(origin, dest, depDate, retDate, type) {
+  var dep = (depDate||'').split('T')[0].replace(/-/g,'');
+  if(type === 'One Way' || !retDate) {
+    return 'https://www.skyscanner.net/transport/flights/'+origin.toLowerCase()+'/'+dest.toLowerCase()+'/'+dep+'/?adults=1&cabinclass=economy';
+  }
+  var ret = (retDate||'').split('T')[0].replace(/-/g,'');
+  return 'https://www.skyscanner.net/transport/flights/'+origin.toLowerCase()+'/'+dest.toLowerCase()+'/'+dep+'/'+ret+'/?adults=1&cabinclass=economy';
+}
+
+function countryFlag(c) {
+  var m={'Italy':'🇮🇹','Spain':'🇪🇸','France':'🇫🇷','Germany':'🇩🇪','Portugal':'🇵🇹',
+    'United Kingdom':'🇬🇧','Netherlands':'🇳🇱','Belgium':'🇧🇪','Austria':'🇦🇹',
+    'Switzerland':'🇨🇭','Poland':'🇵🇱','Greece':'🇬🇷','Croatia':'🇭🇷',
+    'Morocco':'🇲🇦','Ireland':'🇮🇪','Hungary':'🇭🇺','Romania':'🇷🇴','Malta':'🇲🇹',
+    'Turkey':'🇹🇷','Czech Republic':'🇨🇿','Bulgaria':'🇧🇬'};
+  return m[c]||'🌍';
+}
+
+async function fetchCSV(url) {
+  for(var i=1;i<=3;i++){
+    try{
+      var r=await fetch(url,{mode:'cors'});
+      if(r.ok){var t=await r.text();if(t.length>100)return t;}
+      if(i<3)await new Promise(function(res){setTimeout(res,600*i);});
+    }catch(e){}
+  }
+  try{
+    var pr=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url),{mode:'cors'});
+    if(pr.ok)return await pr.text();
+  }catch(e){}
+  throw new Error('Could not load sheet');
+}
+
+function parseCSV(text) {
+  var rows=[],cur='',q=false,cells=[],i=0;
+  var s=text.replace(/^\uFEFF/,'');
+  while(i<s.length){
+    var c=s[i];
+    if(c==='"'){if(q&&s[i+1]==='"'){cur+='"';i+=2;continue;}q=!q;}
+    else if(c===','&&!q){cells.push(cur.trim());cur='';}
+    else if((c==='\n'||c==='\r')&&!q){
+      if(c==='\r'&&s[i+1]==='\n')i++;
+      cells.push(cur.trim());rows.push(cells);cells=[];cur='';
+    }else{cur+=c;}
+    i++;
+  }
+  if(cur||cells.length)rows.push(cells.concat([cur.trim()]));
+  if(!rows.length)return[];
+  var hdr=rows[0].map(function(h){return h.replace(/^"|"$/g,'').trim().toLowerCase();});
+  return rows.slice(1).map(function(cells){
+    var o={};
+    hdr.forEach(function(h,i){o[h]=(cells[i]||'').replace(/^"|"$/g,'').trim();});
+    return o;
+  }).filter(function(r){return r['price (€)']&&!isNaN(+r['price (€)'])&&+r['price (€)']>0;});
+}
+
+async function loadData() {
+  document.getElementById('spin').style.display='flex';
+  document.getElementById('ui').style.display='none';
+  document.getElementById('spin').innerHTML='<div class="spin-icon"></div>&nbsp;Loading deals…';
+  try{
+    var text=await fetchCSV(SHEET_URL);
+    all=parseCSV(text);
+    if(!all.length)throw new Error('No data');
+    gmax=Math.max.apply(null,all.map(function(r){return+r['price (€)'];}).filter(Boolean));
+    var sl=document.getElementById('fp');
+    sl.max=gmax;sl.value=gmax;
+    updPrice(gmax,gmax);
+    var now=new Date();
+    document.getElementById('last-upd').textContent='Updated '+now.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('spin').style.display='none';
+    document.getElementById('ui').style.display='block';
+    fillFilters();render();
+  }catch(e){
+    document.getElementById('spin').innerHTML='<span style="color:var(--red)">Could not load data. Make sure the sheet is published as CSV.</span>';
+  }
+}
+
+function fillFilters() {
+  function set(id,vals){
+    var s=document.getElementById(id),cv=s.value;
+    while(s.options.length>1)s.remove(1);
+    vals.forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);});
+    if(vals.includes(cv))s.value=cv;
+  }
+  var selOrigCtryF=document.getElementById('foc').value;
+  var origOpts=[...new Set(all.map(function(r){return r.origin||r.origen;}).filter(Boolean))];
+  if(selOrigCtryF)origOpts=origOpts.filter(function(o){return(ORIGIN_COUNTRY[o]||'')===selOrigCtryF;});
+  set('fo',origOpts.sort());
+  set('fd',[...new Set(all.map(function(r){return r.destination||r.destino;}).filter(Boolean))].sort());
+  set('fc',[...new Set(all.map(function(r){return r.country||r.país||r.pais;}).filter(Boolean))].sort());
+  set('fp-s',[...new Set(all.map(function(r){return r.pattern||r['patrón']||r.patron;}).filter(Boolean))].sort());
+  set('fm',[...new Set(all.map(function(r){return fmtM(r.departure||r.salida);}).filter(Boolean))].sort());
+}
+
+function updPrice(val,max){
+  var pct=max>0?Math.round(val/max*100):100;
+  document.getElementById('price-fill').style.width=pct+'%';
+  document.getElementById('price-lbl').textContent=(val>=max)?'No limit':'Max €'+val;
+}
+
+function clearFilters(){
+  ['foc','fo','fd','fc','fp-s','fm','fday','ft'].forEach(function(id){document.getElementById(id).value='';});
+  var sl=document.getElementById('fp');sl.value=sl.max;updPrice(+sl.max,+sl.max);
+  fillFilters();render();
+}
+
+function setSort(col){
+  if(sortKey===col)sortDir*=-1;else{sortKey=col;sortDir=1;}
+  ['route','date','price'].forEach(function(c){
+    var si=document.getElementById('si-'+c);
+    if(si)si.innerHTML=c===sortKey?(sortDir===1?'↑':'↓'):'↕';
+  });
+  render();
+}
+
+function render(){
+  var selOrigCtry=document.getElementById('foc').value;
+  var selOrig=document.getElementById('fo').value;
+  var selDest=document.getElementById('fd').value;
+  var selCtry=document.getElementById('fc').value;
+  var selPat=document.getElementById('fp-s').value;
+  var selMon=document.getElementById('fm').value;
+  var selDay=document.getElementById('fday').value;
+  var selType=document.getElementById('ft').value;
+  var maxP=+document.getElementById('fp').value;
+
+  var f=all.filter(function(r){
+    var price=+r['price (€)'];
+    var origin=r.origin||r.origen||'';
+    var dest=r.destination||r.destino||'';
+    var country=r.country||r.país||r.pais||'';
+    var pattern=r.pattern||r['patrón']||r.patron||'';
+    var dep=r.departure||r.salida||'';
+    var type=r.type||r.tipo||'';
+    if(price>maxP)return false;
+    if(selOrigCtry&&(ORIGIN_COUNTRY[origin]||'')!==selOrigCtry)return false;
+    if(selOrig&&origin!==selOrig)return false;
+    if(selDest&&dest!==selDest)return false;
+    if(selCtry&&country!==selCtry)return false;
+    if(selPat&&pattern!==selPat)return false;
+    if(selMon&&fmtM(dep)!==selMon)return false;
+    if(selDay&&fmtDay(dep)!==selDay)return false;
+    if(selType&&type!==selType)return false;
+    return true;
+  });
+
+  f.sort(function(a,b){
+    var d=sortDir;
+    if(sortKey==='price')return(+a['price (€)']-+b['price (€)'])*d;
+    if(sortKey==='date')return((a.departure||a.salida||'').localeCompare(b.departure||b.salida||''))*d;
+    if(sortKey==='route')return((a.origin||a.origen||'')+(a.destination||a.destino||'')).localeCompare((b.origin||b.origen||'')+(b.destination||b.destino||''))*d;
+    return 0;
+  });
+
+  var prices=f.map(function(r){return+r['price (€)'];}).filter(Boolean);
+  document.getElementById('st').textContent=f.length.toLocaleString();
+  document.getElementById('sn').textContent=prices.length?'€'+Math.min.apply(null,prices):'—';
+  document.getElementById('sx').textContent=prices.length?'€'+Math.max.apply(null,prices):'—';
+
+  var chips=document.getElementById('chips');chips.innerHTML='';
+  if(selOrigCtry)chips.innerHTML+='<span class="chip">🌍 '+esc(selOrigCtry)+'</span>';
+  if(selOrig)chips.innerHTML+='<span class="chip">✈ '+esc(selOrig)+'</span>';
+  if(selDest)chips.innerHTML+='<span class="chip">→ '+esc(selDest)+'</span>';
+  if(selCtry)chips.innerHTML+='<span class="chip">'+esc(selCtry)+'</span>';
+  if(selPat)chips.innerHTML+='<span class="chip">'+esc(selPat)+'</span>';
+  if(selMon)chips.innerHTML+='<span class="chip">'+esc(selMon)+'</span>';
+  if(selDay)chips.innerHTML+='<span class="chip">📅 '+esc(selDay)+'</span>';
+  if(selType)chips.innerHTML+='<span class="chip">'+esc(selType)+'</span>';
+  if(maxP<gmax)chips.innerHTML+='<span class="chip">Max €'+maxP+'</span>';
+
+  var hasFilters=selOrigCtry||selOrig||selDest||selCtry||selPat||selMon||selDay||selType||maxP<gmax;
+  document.getElementById('clear-btn').classList.toggle('hidden',!hasFilters);
+
+  var tbody=document.getElementById('tbody');
+  var empty=document.getElementById('empty');
+  if(!f.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+
+  var minP=prices.length?Math.min.apply(null,prices):0;
+  var maxPf=prices.length?Math.max.apply(null,prices):1;
+
+  // Paginate — show first 200, rest on demand
+  window._allRows = f;
+  window._rowMeta = {minP:minP, maxPf:maxPf};
+  renderRows(f.slice(0,200), minP, maxPf, false);
+  var moreBtn = document.getElementById('more-btn');
+  if(f.length > 200) {
+    moreBtn.style.display='block';
+    moreBtn.textContent = 'Show all ' + f.length.toLocaleString() + ' results';
+  } else {
+    moreBtn.style.display='none';
+  }
+}
+
+function renderRows(rows, minP, maxPf, append) {
+  var tbody=document.getElementById('tbody');
+  var html=rows.map(function(r,i){
+    var price=+r['price (€)'];
+    var origin=r.origin||r.origen||'';
+    var dest=r.destination||r.destino||'';
+    var city=r.city||r.ciudad||'';
+    var country=r.country||r.país||r.pais||'';
+    var dep=r.departure||r.salida||'';
+    var ret=r.return||r.vuelta||'';
+    var nights=r.nights||r.noches||'';
+    var pattern=r.pattern||r['patrón']||r.patron||'';
+    var type=r.type||r.tipo||'';
+    var alt=r.alternative||r.alternativo||'';
+    var flag=countryFlag(country);
+    var url=buildAffLink(origin,dest,dep,ret,type);
+    var pct=maxPf>minP?(price-minP)/(maxPf-minP):0.5;
+    var pb=pct<0.33?['pb-low','low']:pct<0.66?['pb-mid','mid']:['pb-hgh','high'];
+    return '<tr data-idx="'+i+'">' + '<td><input type="checkbox" class="row-chk" onchange="updateSnippetBar()"></td>'
+      +'<td data-origin="'+esc(origin)+'" data-dest="'+esc(dest)+'" data-dep="'+esc(dep)+'" data-ret="'+esc(ret)+'" data-price="'+price+'" data-city="'+esc(city)+'" data-type="'+esc(type)+'"><div class="route"><span class="iata">'+esc(origin)+'</span><span class="rarr">›</span><span class="iata">'+esc(dest)+'</span>'+(alt?'<span class="alt-badge">+dates</span>':'')+'</div></td>'
+      +'<td><div>'+esc(city)+'</div></td>'
+      +'<td><span class="country-flag">'+flag+'</span> '+esc(country)+'</td>'
+      +'<td><div class="dep-date">'+fmtD(dep)+'</div>'+(ret?'<div class="ret-date">↩ '+fmtD(ret)+'</div>':'')+'</td>'
+      +'<td><span class="day-pill '+fmtDay(dep).toLowerCase()+'">'+fmtDay(dep)+'</span></td>'
+      +'<td><span class="nights-badge">'+(nights?nights+'n':'—')+'</span></td>'
+      +'<td><span class="pattern-pill">'+esc(pattern)+'</span></td>'
+      +'<td class="r"><div class="price-cell"><span class="pnum">€'+price+'</span><span class="pbadge '+pb[0]+'">'+pb[1]+'</span></div></td>'
+      +'<td class="r lnk">'+(url?'<a href="'+url+'" target="_blank" rel="noopener">Skyscanner ↗</a>':'')+'</td>'
+      +'</tr>';
+  }).join('');
+  if(append) tbody.innerHTML += html;
+  else tbody.innerHTML = html;
+}
+
+function showAll() {
+  var f = window._allRows || [];
+  var m = window._rowMeta || {minP:0,maxPf:1};
+  renderRows(f, m.minP, m.maxPf, false);
+  document.getElementById('more-btn').style.display='none';
+}
+
+
+
+['foc','fo','fd','fc','fp-s','fm','fday','ft'].forEach(function(id){
+  document.getElementById(id).addEventListener('change',function(){fillFilters();render();});
+});
+document.getElementById('fp').addEventListener('input',function(e){updPrice(+e.target.value,gmax);render();});
+
+function toggleAll(chk) {
+  document.querySelectorAll('.row-chk').forEach(function(c){ c.checked = chk.checked; });
+  updateSnippetBar();
+}
+
+function updateSnippetBar() {
+  var checked = document.querySelectorAll('.row-chk:checked');
+  var bar = document.getElementById('snip-bar');
+  var count = document.getElementById('snip-count');
+  if (checked.length > 0) {
+    bar.style.display = 'flex';
+    count.textContent = checked.length + ' flight' + (checked.length > 1 ? 's' : '') + ' selected';
+  } else {
+    bar.style.display = 'none';
+    bar.style.removeProperty('display');
+    bar.style.display = 'none';
+  }
+  var allChk = document.getElementById('chk-all');
+  if (allChk) {
+    var total = document.querySelectorAll('.row-chk').length;
+    allChk.indeterminate = checked.length > 0 && checked.length < total;
+    allChk.checked = checked.length === total && total > 0;
+  }
+}
+
+function clearSelection() {
+  document.querySelectorAll('.row-chk').forEach(function(c){ c.checked = false; });
+  var allChk = document.getElementById('chk-all');
+  if (allChk) { allChk.checked = false; allChk.indeterminate = false; }
+  updateSnippetBar();
+}
+
+function fmtSnipDate(d) {
+  if (!d) return '';
+  var p = d.split('T')[0].split('-');
+  return p[2] + '.' + p[1];
+}
+
+function copySnippets(mode) {
+  var checked = document.querySelectorAll('.row-chk:checked');
+  if (!checked.length) return;
+  var snippets = [];
+  checked.forEach(function(chk) {
+    var row = chk.closest('tr');
+    var td = row.querySelector('td[data-origin]');
+    if (!td) return;
+    var origin = td.dataset.origin;
+    var dest   = td.dataset.dest;
+    var dep    = td.dataset.dep;
+    var ret    = td.dataset.ret;
+    var price  = Math.round(+td.dataset.price);
+    var city   = td.dataset.city;
+    var type   = td.dataset.type;
+    var mktKey = AIRPORT_MARKET[origin] || 'DE';
+    var cfg    = MARKETS[mktKey];
+    if (!cfg) return;
+    var affLink = buildAffLink(origin, dest, dep, ret, type);
+    var trackSource = 'skyscanner_' + mktKey.toLowerCase() + '_flight_affiliate';
+    var label;
+    if (mode === 'with') {
+      label = city + ' - ' + fmtSnipDate(dep) + ' - ' + fmtSnipDate(ret) + ' - ' + price + '€';
+    } else {
+      label = 'From ' + origin + ' - From ' + price + '€';
+    }
+    snippets.push('<p><strong>' + label + '</strong> <a href="' + affLink + '" target="_blank" data-track-source="' + trackSource + '"></a></p>');
+  });
+  navigator.clipboard.writeText(snippets.join('\n')).then(function() {
+    var btns = document.querySelectorAll('#snip-bar button');
+    btns.forEach(function(b){ if(b.textContent.includes('Copy')) { b.textContent = '✓ Copied ' + checked.length + ' snippets!'; setTimeout(function(){ b.textContent = b.textContent.includes('dest)') ? 'Copy snippets (with dest)' : 'Copy snippets (no dest)'; },2000); } });
+  });
+}
+
+loadData();
+</script>
+</body>
+</html>
